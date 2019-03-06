@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 # /usr/bin/python2
 
-
 from __future__ import print_function
 
+import os
 import argparse
 
 from models import Net2
@@ -18,6 +18,8 @@ from tensorpack.predict.config import PredictConfig
 from tensorpack.tfutils.sessinit import SaverRestore
 from tensorpack.tfutils.sessinit import ChainInit
 from tensorpack.callbacks.base import Callback
+
+import glob
 
 
 # class ConvertCallback(Callback):
@@ -42,7 +44,14 @@ from tensorpack.callbacks.base import Callback
 
 
 def convert(predictor, df):
-    pred_spec, y_spec, ppgs = predictor(next(df().get_data()))
+    """
+
+    :param predictor: OfflinePredictor
+    :param df: DataFlow
+    :return:
+    """
+    inp_data = next(df().get_data())
+    pred_spec, y_spec, ppgs = predictor(inp_data)
 
     # Denormalizatoin
     pred_spec = denormalize_db(pred_spec, hp.default.max_db, hp.default.min_db)
@@ -83,11 +92,26 @@ def get_eval_output_names():
 
 
 def do_convert(args, logdir1, logdir2):
+    """
+
+    :param args: Parseargs containing ckpt to load model.
+    :param logdir1: Checkpoint directory.
+    :param logdir2: Checkpoint directory.
+    """
     # Load graph
     model = Net2()
 
-    df = Net2DataFlow(hp.convert.data_path, hp.convert.batch_size)
+    # Read input `*.wav` and batch_size parameters from hparams.yaml and default.yaml.
+    data_path = hp.convert.data_path
+    inp_paths = glob.glob(data_path)
+    assert len(inp_paths) > 0, "data_path: '{}' is empty".format(data_path)
+    batch_size = hp.convert.batch_size
+    assert isinstance(batch_size, int) and batch_size > 0
 
+    # josephz: Net2DataFlow yields mfcc and spectrograms.
+    df = Net2DataFlow(data_path, batch_size)
+
+    # josephz: Read checkpoint location from args.
     ckpt1 = tf.train.latest_checkpoint(logdir1)
     ckpt2 = '{}/{}'.format(logdir2, args.ckpt) if args.ckpt else tf.train.latest_checkpoint(logdir2)
     session_inits = []

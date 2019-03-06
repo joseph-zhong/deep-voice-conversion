@@ -13,7 +13,6 @@ from audio import read_wav, preemphasis, amp2db
 from hparam import hparam as hp
 from utils import normalize_0_1
 
-
 class DataFlow(RNGDataFlow):
 
     def __init__(self, data_path, batch_size):
@@ -32,8 +31,7 @@ class Net1DataFlow(DataFlow):
     def get_data(self):
         while True:
             wav_file = random.choice(self.wav_files)
-            yield get_mfccs_and_phones(wav_file=wav_file)
-
+            yield get_mfccs_and_phones(wav_file=wav_file, random_crop=False)
 
 class Net2DataFlow(DataFlow):
 
@@ -63,13 +61,14 @@ def wav_random_crop(wav, sr, duration):
     return wav
 
 
-def get_mfccs_and_phones(wav_file, trim=False, random_crop=True):
+def get_mfccs_and_phones(wav_file, wav=None, trim=False, random_crop=True):
 
     '''This is applied in `train1` or `test1` phase.
     '''
 
     # Load
-    wav = read_wav(wav_file, sr=hp.default.sr)
+    if wav is None:
+        wav = read_wav(wav_file, sr=hp.default.sr)
 
     mfccs, _, _ = _get_mfcc_and_spec(wav, hp.default.preemphasis, hp.default.n_fft,
                                      hp.default.win_length,
@@ -129,6 +128,26 @@ def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=False):
 
     # Padding or crop
     length = hp.default.sr * hp.default.duration
+    wav = librosa.util.fix_length(wav, length)
+
+    return _get_mfcc_and_spec(wav, hp.default.preemphasis, hp.default.n_fft, hp.default.win_length, hp.default.hop_length)
+
+def get_mfccs_and_spectrogram2(wav, sr=None, trim=True, random_crop=False):
+    '''This is applied in `train2`, `test2` or `convert` phase.
+    '''
+
+    if sr is None:
+        sr = hp.default.sr
+
+    # Trim
+    if trim:
+        wav, _ = librosa.effects.trim(wav, frame_length=hp.default.win_length, hop_length=hp.default.hop_length)
+
+    if random_crop:
+        wav = wav_random_crop(wav, sr, hp.default.duration)
+
+    # Padding or crop
+    length = sr * hp.default.duration
     wav = librosa.util.fix_length(wav, length)
 
     return _get_mfcc_and_spec(wav, hp.default.preemphasis, hp.default.n_fft, hp.default.win_length, hp.default.hop_length)

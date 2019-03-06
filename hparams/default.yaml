@@ -24,8 +24,7 @@ default:
 
     # train
     batch_size: 32
-
-logdir_path: '/data/private/vc/logdir'
+logdir_path: 'deep-voice-conversion/pretrained_model/'
 
 train1:
     # path
@@ -87,11 +86,13 @@ test2:
     # test
     batch_size: 32
 ---
+logdir_path: 'deep-voice-conversion/pretrained_model/'
 convert:
     # path
-    data_path: '/data/private/vc/datasets/arctic/bdl/*.wav'
+    data_path: 'deep-voice-conversion/test_data/*.wav'
 
     # convert
     one_full_wav: False
     batch_size: 1
+    logdir_path: 'deep-voice-conversion/pretrained_model/'
     emphasis_magnitude: 1.2
