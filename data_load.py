@@ -2,6 +2,7 @@
 # /usr/bin/python2
 
 import glob
+import os
 import random
 
 import librosa
@@ -112,13 +113,13 @@ def get_mfccs_and_phones(wav_file, trim=False, random_crop=True):
     return mfccs, phns
 
 
-def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=False):
+def get_mfccs_and_spectrogram(wav_file=None, wav=None, trim=True, random_crop=False):
     '''This is applied in `train2`, `test2` or `convert` phase.
     '''
-
-
     # Load
-    wav, _ = librosa.load(wav_file, sr=hp.default.sr)
+    if wav is None:
+        assert wav_file is not None and os.path.isfile(wav_file)
+        wav, _ = librosa.load(wav_file, sr=hp.default.sr)
 
     # Trim
     if trim:
@@ -135,7 +136,20 @@ def get_mfccs_and_spectrogram(wav_file, trim=True, random_crop=False):
 
 
 # TODO refactoring
-def _get_mfcc_and_spec(wav, preemphasis_coeff, n_fft, win_length, hop_length):
+def _get_mfcc_and_spec(wav,
+        preemphasis_coeff,
+        n_fft,
+        win_length,
+        hop_length):
+
+    if preemphasis_coeff is None:
+        preemphasis_coeff = hp.default.premphasis
+    if n_fft is None:
+        n_fft = hp.default.n_fft
+    if win_length is None:
+        win_length = hp.default.win_length
+    if hop_length is None:
+        hop_length = hp.default.hop_length
 
     # Pre-emphasis
     y_preem = preemphasis(wav, coeff=preemphasis_coeff)
